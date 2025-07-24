@@ -1,57 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Investment Returns Simulator</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4" onload="generateSeries(); updateCharts()">
-    <div class="container max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
-      <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Investment Returns Simulator</h1>
-      <div class="input-group grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <div>
-          <label for="numSeries" class="block text-sm font-medium text-gray-700 mb-1">Number of Random Series</label>
-          <input type="number" id="numSeries" min="1" value="50" placeholder="Enter number of series" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-        </div>
-        <div>
-          <label for="numYears" class="block text-sm font-medium text-gray-700 mb-1">Number of Years</label>
-          <input type="number" id="numYears" min="1" value="35" placeholder="Enter number of periods" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-        </div>
+  <body class="bg-gray-100 min-h-screen flex flex-col p-4">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white py-4 px-6 shadow-md">
+      <div class="container max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-center">Arithmetic vs Geometric Returns Simulator</h1>
+        <!-- <p class="text-center text-sm mt-2">Explore investment growth scenarios with customizable parameters</p> -->
+        <p class="text-sm mt-2">
+          This simulator allows you to generate random investment series and compare them against a constant growth series, helping you understand the impact of
+          volatility on returns.
+        </p>
+        <p class="text-sm mt-1">
+          <span class="underline">Both series, random and constant, will average the same arithmetic mean per all periods</span>, but the random series will
+          exhibit volatility, while the constant series will provide a steady growth path. The steady return series will always achieve higher final values than
+          volatile series with the same arithmetic mean due to the compounding effect.
+        </p>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 my-6 flex-grow">
+      <div class="input-group grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div>
           <label for="initialInvestment" class="block text-sm font-medium text-gray-700 mb-1">Initial Investment ($)</label>
-          <input type="number" id="initialInvestment" min="1" value="1000" placeholder="Enter initial investment" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <input
+            type="number"
+            id="initialInvestment"
+            min="1"
+            value="1000"
+            placeholder="Enter initial investment"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
         <div>
-          <label for="maxReturn" class="block text-sm font-medium text-gray-700 mb-1">Max Yearly Return (%)</label>
-          <input type="number" id="maxReturn" step="0.1" value="35" placeholder="Enter max return (%)" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <label for="numPeriods" class="block text-sm font-medium text-gray-700 mb-1">Number of Periods</label>
+          <input
+            type="number"
+            id="numPeriods"
+            min="1"
+            value="35"
+            placeholder="Enter number of periods"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
         <div>
-          <label for="minReturn" class="block text-sm font-medium text-gray-700 mb-1">Min Yearly Return (%)</label>
-          <input type="number" id="minReturn" step="0.1" value="-35" placeholder="Enter min return (%)" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <label for="numSerie" class="block text-sm font-medium text-gray-700 mb-1">Number of Random Series</label>
+          <input
+            type="number"
+            id="numSeries"
+            min="1"
+            value="50"
+            placeholder="Enter number of series"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+
+      <div class="input-group grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="maxReturn" class="block text-sm font-medium text-gray-700 mb-1">Max Return per Period for Random Series (%)</label>
+          <input
+            type="number"
+            id="maxReturn"
+            step="0.1"
+            value="35"
+            placeholder="Enter max return (%)"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
         <div>
-          <label for="meanReturn" class="block text-sm font-medium text-gray-700 mb-1">Mean Yearly Return (%)</label>
-          <input type="number" id="meanReturn" step="0.1" value="7.5" placeholder="Enter mean return (%)" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <label for="minReturn" class="block text-sm font-medium text-gray-700 mb-1">Min Return per Period for Random Series (%)</label>
+          <input
+            type="number"
+            id="minReturn"
+            step="0.1"
+            value="-35"
+            placeholder="Enter min return (%)"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+
+      <div class="input-group grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label for="meanReturn" class="block text-sm font-medium text-gray-700 mb-1">Mean Return per Period for all series (%)</label>
+          <input
+            type="number"
+            id="meanReturn"
+            step="0.1"
+            value="7.5"
+            placeholder="Enter mean return (%)"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
         <div class="sm:col-span-2 lg:col-span-2 flex items-end">
-          <button onclick="generateSeries(); updateCharts()" class="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Generate & Plot</button>
+          <button onclick="generateSeries(); updateCharts()" class="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+            Generate & Plot
+          </button>
         </div>
       </div>
+
       <div id="errorMessage" class="text-red-600 text-sm mt-2 hidden"></div>
+
       <div class="checkbox-group flex items-center gap-2 mt-4">
-        <input type="checkbox" id="logScale" onchange="updateCharts()" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-        <label for="logScale" class="text-sm font-medium text-gray-700">Use Logarithmic Y-Axis (Line Chart)</label>
+        <input type="checkbox" id="logScale" onchange="updateCharts()" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+        <label for="logScale" class="text-sm font-medium text-gray-700">Logarithmic Y-Axis</label>
       </div>
+
       <canvas id="returnsChart" class="mt-6"></canvas>
       <canvas id="finalValuesChart" class="mt-6"></canvas>
+
       <div id="results" class="mt-6 text-gray-700 whitespace-pre-wrap"></div>
+
       <div class="mt-6 text-gray-700 text-sm bg-gray-100 p-4 rounded-md">
         <h2 class="text-lg font-semibold text-gray-800 mb-2">Legend</h2>
-        <p><strong>CAGR (Compound Annual Growth Rate):</strong> The annual growth rate of an investment over a specified period, assuming the profits are reinvested each year. It is calculated as: CAGR = ((Final Value / Initial Investment)^(1/Number of Years) - 1) * 100, expressed as a percentage.</p>
+        <p>
+          <strong>CAGR (Compound Annual Growth Rate):</strong> The annual growth rate of an investment over a specified period, assuming the profits are
+          reinvested each year. It is calculated as: CAGR = ((Final Value / Initial Investment)^(1/Number of Years) - 1) * 100, expressed as a percentage.
+        </p>
       </div>
-    </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-4 px-6">
+      <div class="container max-w-4xl mx-auto text-center">
+        <p class="text-sm">Created by <span class="font-semibold">Nicolas Lequeux</span> - July 2025</p>
+        <p class="text-sm mt-1">
+          Interested in collaborating on new studies or projects? Feel free to reach out:
+          <a href="https://www.linkedin.com/in/nicolas-lequeux-5b02806/" target="_blank" class="underline hover:text-blue-300">LinkedIn Profile</a>
+        </p>
+      </div>
+    </footer>
+
     <script>
       // Global variables to store series data
       let allSeries = [];
@@ -61,108 +148,102 @@
       let volatilities = [];
       let cagrs = [];
       let numSeries = 3;
-      let numYears = 100;
+      let numPeriods = 100;
       let initialInvestment = 1000;
       let maxReturn = 25;
       let minReturn = -25;
       let meanReturn = 5;
 
-      function validateInputs(numSeries, numYears, initialInvestment, maxReturn, minReturn, meanReturn) {
-        const errorDiv = document.getElementById('errorMessage');
-        errorDiv.classList.add('hidden');
-        errorDiv.textContent = '';
+      function validateInputs(numSeries, numPeriods, initialInvestment, maxReturn, minReturn, meanReturn) {
+        const errorDiv = document.getElementById("errorMessage");
+        errorDiv.classList.add("hidden");
+        errorDiv.textContent = "";
         if (isNaN(numSeries) || numSeries < 1) {
-          errorDiv.textContent = 'Number of Random Series must be at least 1.';
-          errorDiv.classList.remove('hidden');
+          errorDiv.textContent = "Number of Random Series must be at least 1.";
+          errorDiv.classList.remove("hidden");
           return false;
         }
-        if (isNaN(numYears) || numYears < 1) {
-          errorDiv.textContent = 'Number of Years must be at least 1.';
-          errorDiv.classList.remove('hidden');
+        if (isNaN(numPeriods) || numPeriods < 1) {
+          errorDiv.textContent = "Number of Periods must be at least 1.";
+          errorDiv.classList.remove("hidden");
           return false;
         }
         if (isNaN(initialInvestment) || initialInvestment <= 0) {
-          errorDiv.textContent = 'Initial Investment must be greater than 0.';
-          errorDiv.classList.remove('hidden');
+          errorDiv.textContent = "Initial Investment must be greater than 0.";
+          errorDiv.classList.remove("hidden");
           return false;
         }
         if (isNaN(maxReturn)) {
-          errorDiv.textContent = 'Max Yearly Return must be a valid number.';
-          errorDiv.classList.remove('hidden');
+          errorDiv.textContent = "Max Return per period must be a valid number.";
+          errorDiv.classList.remove("hidden");
           return false;
         }
         if (isNaN(minReturn)) {
-          errorDiv.textContent = 'Min Yearly Return must be a valid number.';
-          errorDiv.classList.remove('hidden');
+          errorDiv.textContent = "Min Yearly Return must be a valid number.";
+          errorDiv.classList.remove("hidden");
           return false;
         }
         if (maxReturn <= minReturn) {
-          errorDiv.textContent = 'Max Yearly Return must be greater than Min Yearly Return.';
-          errorDiv.classList.remove('hidden');
+          errorDiv.textContent = "Max Return per period must be greater than Min Yearly Return.";
+          errorDiv.classList.remove("hidden");
           return false;
         }
         if (isNaN(meanReturn)) {
-          errorDiv.textContent = 'Mean Yearly Return must be a valid number.';
-          errorDiv.classList.remove('hidden');
+          errorDiv.textContent = "Mean Yearly Return must be a valid number.";
+          errorDiv.classList.remove("hidden");
           return false;
         }
         if (meanReturn < minReturn || meanReturn > maxReturn) {
-          errorDiv.textContent = 'Mean Yearly Return must be between Min and Max Yearly Return.';
-          errorDiv.classList.remove('hidden');
+          errorDiv.textContent = "Mean Return per period must be between Min and Max Return per period.";
+          errorDiv.classList.remove("hidden");
           return false;
         }
         return true;
       }
 
       function generateRandomReturns(count, mean, maxReturn, minReturn) {
-        // Convert percentage inputs to decimals
         const meanDecimal = mean / 100;
         const maxReturnDecimal = maxReturn / 100;
         const minReturnDecimal = minReturn / 100;
-        // Generate random returns between minReturn and maxReturn
-        let returns = Array.from({ length: count }, () =>
-          Math.random() * (maxReturnDecimal - minReturnDecimal) + minReturnDecimal
-        );
+        let returns = Array.from({ length: count }, () => Math.random() * (maxReturnDecimal - minReturnDecimal) + minReturnDecimal);
         const currentMean = returns.reduce((sum, val) => sum + val, 0) / count;
         const adjustment = meanDecimal - currentMean;
-        returns = returns.map(val => val + adjustment);
+        returns = returns.map((val) => val + adjustment);
         return returns;
       }
 
       function calculateInvestmentGrowth(initialInvestment, returns) {
         let balance = initialInvestment;
-        return returns.map(rate => {
-          balance *= (1 + rate);
+        return returns.map((rate) => {
+          balance *= 1 + rate;
           return balance;
         });
       }
 
-      function calculateConstantGrowth(initialInvestment, numYears, rate) {
-        return Array.from({ length: numYears }, (_, i) =>
-          initialInvestment * Math.pow(1 + rate / 100, i + 1)
-        );
+      function calculateConstantGrowth(initialInvestment, numPeriods, rate) {
+        return Array.from({ length: numPeriods }, (_, i) => initialInvestment * Math.pow(1 + rate / 100, i + 1));
       }
 
       function calculateVolatility(returns) {
         const mean = returns.reduce((sum, val) => sum + val, 0) / returns.length;
         const variance = returns.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / returns.length;
-        return Math.sqrt(variance) * 100; // Convert to percentage
+        return Math.sqrt(variance) * 100;
       }
 
-      function calculateCAGR(initialValue, finalValue, numYears) {
-        if (initialValue <= 0 || finalValue <= 0 || numYears <= 0) return 0;
-        return ((Math.pow(finalValue / initialValue, 1 / numYears) - 1) * 100).toFixed(2);
+      function calculateCAGR(initialValue, finalValue, numPeriods) {
+        if (initialValue <= 0 || finalValue <= 0 || numPeriods <= 0) return 0;
+        return ((Math.pow(finalValue / initialValue, 1 / numPeriods) - 1) * 100).toFixed(2);
       }
 
       function generateSeries() {
-        const inputNumSeries = parseInt(document.getElementById('numSeries').value) || 1;
-        const inputNumYears = parseInt(document.getElementById('numYears').value);
-        const inputInitialInvestment = parseFloat(document.getElementById('initialInvestment').value);
-        const inputMaxReturn = parseFloat(document.getElementById('maxReturn').value);
-        const inputMinReturn = parseFloat(document.getElementById('minReturn').value);
-        const inputMeanReturn = parseFloat(document.getElementById('meanReturn').value);
-        // Validate inputs
-        if (!validateInputs(inputNumSeries, inputNumYears, inputInitialInvestment, inputMaxReturn, inputMinReturn, inputMeanReturn)) {
+        const inputNumSeries = parseInt(document.getElementById("numSeries").value) || 1;
+        const inputNumPeriods = parseInt(document.getElementById("numPeriods").value);
+        const inputInitialInvestment = parseFloat(document.getElementById("initialInvestment").value);
+        const inputMaxReturn = parseFloat(document.getElementById("maxReturn").value);
+        const inputMinReturn = parseFloat(document.getElementById("minReturn").value);
+        const inputMeanReturn = parseFloat(document.getElementById("meanReturn").value);
+
+        if (!validateInputs(inputNumSeries, inputNumPeriods, inputInitialInvestment, inputMaxReturn, inputMinReturn, inputMeanReturn)) {
           allSeries = [];
           growthSeries = [];
           constantGrowth = [];
@@ -172,205 +253,202 @@
           updateCharts();
           return;
         }
-        // Update global variables
+
         numSeries = inputNumSeries;
-        numYears = inputNumYears;
+        numPeriods = inputNumPeriods;
         initialInvestment = inputInitialInvestment;
         maxReturn = inputMaxReturn;
         minReturn = inputMinReturn;
         meanReturn = inputMeanReturn;
-        // Generate random series
-        allSeries = Array.from({ length: numSeries }, () =>
-          generateRandomReturns(numYears, meanReturn, maxReturn, minReturn)
-        );
-        // Calculate investment growth for random series
-        growthSeries = allSeries.map(series =>
-          calculateInvestmentGrowth(initialInvestment, series)
-        );
-        // Calculate constant growth series using mean return
-        constantGrowth = calculateConstantGrowth(initialInvestment, numYears, meanReturn);
-        // Calculate mean returns, volatilities, and CAGRs for random series
-        means = allSeries.map(series =>
-          (series.reduce((sum, val) => sum + val, 0) / numYears * 100).toFixed(2)
-        );
-        volatilities = allSeries.map(series =>
-          calculateVolatility(series).toFixed(2)
-        );
-        cagrs = growthSeries.map(series =>
-          calculateCAGR(initialInvestment, series[series.length - 1], numYears)
-        );
-        // Calculate mean, volatility, and CAGR for constant growth series
-        const constantReturns = Array(numYears).fill(meanReturn / 100);
+
+        allSeries = Array.from({ length: numSeries }, () => generateRandomReturns(numPeriods, meanReturn, maxReturn, minReturn));
+
+        growthSeries = allSeries.map((series) => calculateInvestmentGrowth(initialInvestment, series));
+
+        constantGrowth = calculateConstantGrowth(initialInvestment, numPeriods, meanReturn);
+
+        means = allSeries.map((series) => ((series.reduce((sum, val) => sum + val, 0) / numPeriods) * 100).toFixed(2));
+
+        volatilities = allSeries.map((series) => calculateVolatility(series).toFixed(2));
+
+        cagrs = growthSeries.map((series) => calculateCAGR(initialInvestment, series[series.length - 1], numPeriods));
+
+        const constantReturns = Array(numPeriods).fill(meanReturn / 100);
         means.push(meanReturn.toFixed(2));
         volatilities.push(calculateVolatility(constantReturns).toFixed(2));
-        cagrs.push(calculateCAGR(initialInvestment, constantGrowth[constantGrowth.length - 1], numYears));
+        cagrs.push(calculateCAGR(initialInvestment, constantGrowth[constantGrowth.length - 1], numPeriods));
       }
 
       function updateCharts() {
-        const errorDiv = document.getElementById('errorMessage');
-        // If no valid series data exists, clear charts and show results only if there's an error
+        const errorDiv = document.getElementById("errorMessage");
         if (allSeries.length === 0 || growthSeries.length === 0 || constantGrowth.length === 0) {
-          if (window.returnsChart && typeof window.returnsChart.destroy === 'function') {
+          if (window.returnsChart && typeof window.returnsChart.destroy === "function") {
             window.returnsChart.destroy();
           }
-          if (window.finalValuesChart && typeof window.finalValuesChart.destroy === 'function') {
+          if (window.finalValuesChart && typeof window.finalValuesChart.destroy === "function") {
             window.finalValuesChart.destroy();
           }
-          document.getElementById('results').textContent = '';
+          document.getElementById("results").textContent = "";
           return;
         }
-        // Clear any existing error message
-        errorDiv.classList.add('hidden');
-        errorDiv.textContent = '';
-        const logScale = document.getElementById('logScale').checked;
-        // Display results summary
-        const resultText = `Generated ${numSeries} random series with ${numYears} periods each:\n` +
-          means.slice(0, -1).map((mean, i) => `Random Series ${i + 1} Mean Return: ${mean}% (Volatility: ${volatilities[i]}%, CAGR: ${cagrs[i]}%)`).join('\n') +
-          `\nConstant ${meanReturn}% Series: Fixed ${means[means.length - 1]}% per period (Volatility: ${volatilities[volatilities.length - 1]}%, CAGR: ${cagrs[cagrs.length - 1]}%)` +
+
+        errorDiv.classList.add("hidden");
+        errorDiv.textContent = "";
+        const logScale = document.getElementById("logScale").checked;
+
+        const resultText =
+          `Generated ${numSeries} random series with ${numPeriods} periods each:\n` +
+          means
+            .slice(0, -1)
+            .map((mean, i) => `Random Series ${i + 1} Mean Return: ${mean}% (Volatility: ${volatilities[i]}%, CAGR: ${cagrs[i]}%)`)
+            .join("\n") +
+          `\nConstant ${meanReturn}% Series: Fixed ${means[means.length - 1]}% per period (Volatility: ${volatilities[volatilities.length - 1]}%, CAGR: ${
+            cagrs[cagrs.length - 1]
+          }%)` +
           `\n\nInitial Investment: $${initialInvestment.toFixed(2)}` +
-          `\nMax Yearly Return: ${maxReturn.toFixed(2)}%` +
-          `\nMin Yearly Return: ${minReturn.toFixed(2)}%`;
-        document.getElementById('results').textContent = resultText;
-        // Get canvas context for gradient
-        const ctx = document.getElementById('returnsChart').getContext('2d');
-        // Prepare data for line chart
+          `\nMax Return per period: ${maxReturn.toFixed(2)}%` +
+          `\nMin Return per period: ${minReturn.toFixed(2)}%`;
+        document.getElementById("results").textContent = resultText;
+
+        const ctx = document.getElementById("returnsChart").getContext("2d");
         const lineDatasets = growthSeries.map((series, i) => {
-          // Create gradient for each random series
           const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-          gradient.addColorStop(0, 'rgba(220, 220, 220, 0.8)'); // Lighter grey
-          gradient.addColorStop(1, 'rgba(180, 180, 180, 0.8)'); // Slightly darker but still light grey
+          gradient.addColorStop(0, "rgba(220, 220, 220, 0.8)");
+          gradient.addColorStop(1, "rgba(180, 180, 180, 0.8)");
           return {
             label: `Random Series ${i + 1}`,
             data: series,
             borderColor: gradient,
-            borderWidth: 1, // Thin lines for random series
+            borderWidth: 1,
             fill: false,
             tension: 0.1,
-            pointRadius: 0 // No points
+            pointRadius: 0,
           };
         });
-        // Add constant growth series to line chart
+
         lineDatasets.push({
           label: `Constant ${meanReturn}% Series`,
           data: constantGrowth,
-          borderColor: '#0000FF', // Blue color
-          borderWidth: 2, // Slightly thicker for reference
-          borderDash: [5, 5], // Dashed line
+          borderColor: "#0000FF",
+          borderWidth: 2,
+          borderDash: [5, 5],
           fill: false,
           tension: 0.1,
-          pointRadius: 0 // No points
+          pointRadius: 0,
         });
-        // Destroy existing line chart if it exists
-        if (window.returnsChart && typeof window.returnsChart.destroy === 'function') {
+
+        if (window.returnsChart && typeof window.returnsChart.destroy === "function") {
           window.returnsChart.destroy();
         }
-        // Create line chart
-        window.returnsChart = new Chart(document.getElementById('returnsChart'), {
-          type: 'line',
+
+        window.returnsChart = new Chart(document.getElementById("returnsChart"), {
+          type: "line",
           data: {
-            labels: Array.from({ length: numYears }, (_, i) => i + 1),
-            datasets: lineDatasets
+            labels: Array.from({ length: numPeriods }, (_, i) => i + 1),
+            datasets: lineDatasets,
           },
           options: {
             responsive: true,
             plugins: {
               title: {
                 display: true,
-                text: `Investment Growth: Random Series vs Constant ${meanReturn}% Return`
+                text: `Random vs constant returns, both averaging ${meanReturn}% arithmetic mean per period`,
               },
               legend: {
-                display: false // Hide legend
-              }
+                display: false,
+              },
             },
             scales: {
               x: {
                 title: {
                   display: true,
-                  text: 'Year'
-                }
+                  text: "Period",
+                },
               },
               y: {
-                type: logScale ? 'logarithmic' : 'linear', // Toggle between logarithmic and linear
+                type: logScale ? "logarithmic" : "linear",
                 title: {
                   display: true,
-                  text: 'Investment Value ($)'
+                  text: "Investment Value ($)",
                 },
                 beginAtZero: false,
-                min: logScale ? initialInvestment * 0.1 : undefined, // Ensure positive values for log scale
+                min: logScale ? initialInvestment * 0.1 : undefined,
                 ticks: {
-                  callback: function(value) {
-                    return '$' + value.toLocaleString(); // Format y-axis labels as currency
-                  }
-                }
-              }
-            }
-          }
+                  callback: function (value) {
+                    return "$" + value.toLocaleString();
+                  },
+                },
+              },
+            },
+          },
         });
-        // Prepare data for bar chart
-        const finalValues = growthSeries.map(series => series[series.length - 1]);
+
+        const finalValues = growthSeries.map((series) => series[series.length - 1]);
         finalValues.push(constantGrowth[constantGrowth.length - 1]);
         const barLabels = Array.from({ length: numSeries }, (_, i) => `Series ${i + 1}`);
         barLabels.push(`Constant ${meanReturn}%`);
-        const barDatasets = [{
-          label: 'Final Value',
-          data: finalValues,
-          backgroundColor: [
-            ...Array(numSeries).fill('#808080'), // Grey for random series
-            '#0000FF' // Blue for constant series
-          ],
-          borderColor: [
-            ...Array(numSeries).fill('#808080'),
-            '#0000FF'
-          ],
-          borderWidth: 1
-        }];
-        // Destroy existing bar chart if it exists
-        if (window.finalValuesChart && typeof window.finalValuesChart.destroy === 'function') {
+        const barDatasets = [
+          {
+            label: "Final Value",
+            data: finalValues,
+            backgroundColor: [...Array(numSeries).fill("#808080"), "#0000FF"],
+            borderColor: [...Array(numSeries).fill("#808080"), "#0000FF"],
+            borderWidth: 1,
+          },
+        ];
+
+        if (window.finalValuesChart && typeof window.finalValuesChart.destroy === "function") {
           window.finalValuesChart.destroy();
         }
-        // Create bar chart
-        window.finalValuesChart = new Chart(document.getElementById('finalValuesChart'), {
-          type: 'bar',
+
+        window.finalValuesChart = new Chart(document.getElementById("finalValuesChart"), {
+          type: "bar",
           data: {
             labels: barLabels,
-            datasets: barDatasets
+            datasets: barDatasets,
           },
           options: {
             responsive: true,
             plugins: {
               title: {
                 display: true,
-                text: `Final Investment Values After ${numYears} Years`
+                text: `Final investment values after ${numPeriods} periods`,
               },
               legend: {
-                display: false // Hide legend
-              }
+                display: false,
+              },
             },
             scales: {
               x: {
                 title: {
                   display: true,
-                  text: 'Series'
-                }
+                  text: "Random Series",
+                },
               },
               y: {
-                type: 'linear', // Always linear
+                type: "linear",
                 title: {
                   display: true,
-                  text: 'Final Value ($)'
+                  text: "Final Value ($)",
                 },
-                beginAtZero: true, // Start at 0
-                min: 0, // Explicitly set to 0
+                beginAtZero: true,
+                min: 0,
                 ticks: {
-                  callback: function(value) {
-                    return '$' + value.toLocaleString();
-                  }
-                }
-              }
-            }
-          }
+                  callback: function (value) {
+                    return "$" + value.toLocaleString();
+                  },
+                },
+              },
+            },
+          },
         });
       }
+
+      // Initialize charts on page load
+      window.onload = function () {
+        generateSeries();
+        updateCharts();
+      };
     </script>
   </body>
 </html>
