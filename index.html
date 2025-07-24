@@ -12,13 +12,12 @@
     <header class="bg-blue-600 text-white py-4 px-6 shadow-md">
       <div class="container max-w-4xl mx-auto">
         <h1 class="text-3xl font-bold text-center">Arithmetic vs Geometric Returns Simulator</h1>
-        <!-- <p class="text-center text-sm mt-2">Explore investment growth scenarios with customizable parameters</p> -->
         <p class="text-sm mt-2">
-          This simulator allows you to generate random investment series and compare them against a constant growth series, helping you understand the impact of
+          This simulator allows you to generate random investment series and compare them against constant growth, helping you understand the impact of
           volatility on returns.
         </p>
         <p class="text-sm mt-1">
-          <span class="underline">Both series, random and constant, will average the same arithmetic mean per all periods</span>, but the random series will
+          <span class="underline">Both series, random and constant, will average the same arithmetic mean across all periods</span>, but the random series will
           exhibit volatility, while the constant series will provide a steady growth path. The steady return series will always achieve higher final values than
           volatile series with the same arithmetic mean due to the compounding effect.
         </p>
@@ -51,7 +50,7 @@
           />
         </div>
         <div>
-          <label for="numSerie" class="block text-sm font-medium text-gray-700 mb-1">Number of Random Series</label>
+          <label for="numSeries" class="block text-sm font-medium text-gray-700 mb-1">Number of Random Series</label>
           <input
             type="number"
             id="numSeries"
@@ -179,17 +178,17 @@
           return false;
         }
         if (isNaN(minReturn)) {
-          errorDiv.textContent = "Min Yearly Return must be a valid number.";
+          errorDiv.textContent = "Min Return per period must be a valid number.";
           errorDiv.classList.remove("hidden");
           return false;
         }
         if (maxReturn <= minReturn) {
-          errorDiv.textContent = "Max Return per period must be greater than Min Yearly Return.";
+          errorDiv.textContent = "Max Return per period must be greater than Min Return per period.";
           errorDiv.classList.remove("hidden");
           return false;
         }
         if (isNaN(meanReturn)) {
-          errorDiv.textContent = "Mean Yearly Return must be a valid number.";
+          errorDiv.textContent = "Mean Return per period must be a valid number.";
           errorDiv.classList.remove("hidden");
           return false;
         }
