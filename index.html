@@ -1,26 +1,150 @@
+<script type="text/javascript">
+  var gk_isXlsx = false;
+  var gk_xlsxFileLookup = {};
+  var gk_fileData = {};
+
+  function filledCell(cell) {
+    return cell !== "" && cell != null;
+  }
+  
+  function loadFileData(filename) {
+    if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+      try {
+        var workbook = XLSX.read(gk_fileData[filename], { type: "base64" });
+        var firstSheetName = workbook.SheetNames[0];
+        var worksheet = workbook.Sheets[firstSheetName];
+
+        // Convert sheet to JSON to filter blank rows
+        var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: "" });
+        // Filter out blank rows (rows where all cells are empty, null, or undefined)
+        var filteredData = jsonData.filter((row) => row.some(filledCell));
+
+        // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+        var headerRowIndex = filteredData.findIndex((row, index) => row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length);
+        // Fallback
+        if (headerRowIndex === -1 || headerRowIndex > 25) {
+          headerRowIndex = 0;
+        }
+
+        // Convert filtered JSON back to CSV
+        var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+        csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+        return csv;
+      } catch (e) {
+        console.error(e);
+        return "";
+      }
+    }
+
+    return gk_fileData[filename] || "";
+  }
+</script>
+<script type="text/javascript">
+  var gk_isXlsx = false;
+  var gk_xlsxFileLookup = {};
+  var gk_fileData = {};
+
+  function filledCell(cell) {
+    return cell !== "" && cell != null;
+  }
+
+  function loadFileData(filename) {
+    if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+      try {
+        var workbook = XLSX.read(gk_fileData[filename], { type: "base64" });
+        var firstSheetName = workbook.SheetNames[0];
+        var worksheet = workbook.Sheets[firstSheetName];
+        var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: "" });
+        var filteredData = jsonData.filter((row) => row.some(filledCell));
+        var headerRowIndex = filteredData.findIndex((row, index) => row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length);
+        if (headerRowIndex === -1 || headerRowIndex > 25) {
+          headerRowIndex = 0;
+        }
+        var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+        csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+        return csv;
+      } catch (e) {
+        console.error(e);
+        return "";
+      }
+    }
+    return gk_fileData[filename] || "";
+  }
+</script>
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Investment Returns Simulator</title>
+    <title data-i18n="title">Investment Returns Simulator</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .chart-container {
+        position: relative;
+        height: 400px;
+        width: 100%;
+      }
+    </style>
   </head>
   <body class="bg-gray-100 min-h-screen flex flex-col p-4">
     <!-- Header -->
-    <header class="bg-blue-600 text-white py-4 px-6 shadow-md">
-      <div class="container max-w-4xl mx-auto">
-        <h1 class="text-3xl font-bold text-center">Arithmetic vs Geometric Returns Simulator</h1>
-        <p class="text-sm mt-2">
+    <header class="bg-blue-50 text-white py-4 px-6 shadow-md">
+      <div class="container max-w-4xl mx-auto text-gray-700">
+        <h1 class="text-3xl font-bold text-center" data-i18n="header.title">Volatility versus Steady Growth Simulator</h1>
+        <p class="text-sm mt-2" data-i18n="header.description1">
           This simulator allows you to generate random investment series and compare them against constant growth, helping you understand the impact of
           volatility on returns.
         </p>
-        <p class="text-sm mt-1">
+        <p class="text-sm mt-1" data-i18n="header.description2">
           <span class="underline">Both series, random and constant, will average the same arithmetic mean across all periods</span>, but the random series will
           exhibit volatility, while the constant series will provide a steady growth path. The steady return series will always achieve higher final values than
           volatile series with the same arithmetic mean due to the compounding effect.
         </p>
+        <div class="mt-4 flex items-center justify-between">
+          <button onclick="toggleHelpSection()" class="text-sm underline hover:text-blue-300 focus:outline-none" data-i18n="header.show_hide_help">
+            Show/Hide Help: Understanding Volatility and Min/Max Returns
+          </button>
+          <button 
+            id="languageToggle" 
+            onclick="toggleLanguage()" 
+            class="py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+            data-i18n="header.language_button"
+          >
+            Français
+          </button>
+        </div>
+        <div id="helpSection" class="hidden text-sm mt-2 bg-blue-100 p-4 rounded-md">
+          <h2 class="text-lg font-semibold mb-2" data-i18n="header.help.title">Understanding Volatility and Min/Max Returns</h2>
+          <p data-i18n="header.help.description">
+            This simulator lets you choose between a <strong>Uniform Distribution</strong> or a <strong>Normal Distribution</strong> to generate random
+            investment returns. Each uses different parameters to control the variability of returns:
+          </p>
+          <ul class="list-disc pl-5 mt-2">
+            <li data-i18n="header.help.volatility">
+              <strong>Volatility (Normal Distribution):</strong> Select "Normal Distribution" to generate returns that follow a bell-shaped curve, clustering
+              around the <strong>Mean Return</strong>. <strong>Volatility</strong> (standard deviation, %) controls how spread out returns are. Higher
+              volatility (e.g., 20%) means larger swings, with most returns within ±1 standard deviation (e.g., -12.5% to 27.5% for a 7.5% mean). Higher
+              volatility reduces the <strong>CAGR</strong> due to compounding effects.
+            </li>
+            <li class="mt-2" data-i18n="header.help.min_max">
+              <strong>Min/Max Returns (Uniform Distribution):</strong> Select "Uniform Distribution" to generate returns equally likely between
+              <strong>Min Return</strong> and <strong>Max Return</strong> (e.g., -35% to 35%). The range sets the variability, where volatility is approximately
+              ((Max - Min) / √12) × 100 (e.g., ~20.21% for -35% to 35%). A wider range increases variability, lowering the CAGR.
+            </li>
+            <li class="mt-2" data-i18n="header.help.comparing">
+              <strong>Comparing Distributions:</strong> Normal Distribution is more realistic, with returns clustering near the mean. Uniform Distribution tests
+              extreme scenarios, as all returns in the range are equally likely. Both match the specified <strong>Mean Return</strong>, but higher variability
+              (volatility or wider range) leads to greater fluctuations and a lower CAGR, as seen in the charts.
+            </li>
+            <li class="mt-2" data-i18n="header.help.using">
+              <strong>Using the Simulator:</strong> Choose Uniform Distribution to set exact return boundaries, or Normal Distribution for realistic market
+              behavior. Use the histogram to see return distributions, the line chart for growth paths, and the bar chart for final values. Observe how
+              variability impacts outcomes compared to the constant return series.
+            </li>
+          </ul>
+        </div>
       </div>
     </header>
 
@@ -28,7 +152,7 @@
     <main class="container max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 my-6 flex-grow">
       <div class="input-group grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div>
-          <label for="initialInvestment" class="block text-sm font-medium text-gray-700 mb-1">Initial Investment ($)</label>
+          <label for="initialInvestment" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="main.initial_investment">Initial Investment ($)</label>
           <input
             type="number"
             id="initialInvestment"
@@ -39,7 +163,7 @@
           />
         </div>
         <div>
-          <label for="numPeriods" class="block text-sm font-medium text-gray-700 mb-1">Number of Periods</label>
+          <label for="numPeriods" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="main.num_periods">Number of Periods</label>
           <input
             type="number"
             id="numPeriods"
@@ -50,7 +174,7 @@
           />
         </div>
         <div>
-          <label for="numSeries" class="block text-sm font-medium text-gray-700 mb-1">Number of Random Series</label>
+          <label for="numSeries" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="main.num_series">Number of Random Series</label>
           <input
             type="number"
             id="numSeries"
@@ -61,10 +185,27 @@
           />
         </div>
       </div>
-
-      <div class="input-group grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div class="input-group grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div>
-          <label for="maxReturn" class="block text-sm font-medium text-gray-700 mb-1">Max Return per Period for Random Series (%)</label>
+          <label for="distributionType" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="main.distribution_type">Distribution Type</label>
+          <div class="relative">
+            <select
+              id="distributionType"
+              onchange="toggleDistributionInputs()"
+              class="appearance-none w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-8"
+            >
+              <option value="uniform" selected data-i18n="main.uniform_distribution">Uniform Distribution</option>
+              <option value="normal" data-i18n="main.normal_distribution">Normal Distribution</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+              <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="uniformInputs">
+          <label for="maxReturn" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="main.max_return">Max Return per Period (%)</label>
           <input
             type="number"
             id="maxReturn"
@@ -74,8 +215,8 @@
             class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
-        <div>
-          <label for="minReturn" class="block text-sm font-medium text-gray-700 mb-1">Min Return per Period for Random Series (%)</label>
+        <div class="uniformInputs">
+          <label for="minReturn" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="main.min_return">Min Return per Period (%)</label>
           <input
             type="number"
             id="minReturn"
@@ -85,11 +226,23 @@
             class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
+        <div id="gaussianInputs" class="hidden">
+          <label for="volatility" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="main.volatility">Volatility (Std Deviation, %)</label>
+          <input
+            type="number"
+            id="volatility"
+            step="0.1"
+            value="20"
+            placeholder="Enter volatility (%)"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
       </div>
-
       <div class="input-group grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div>
-          <label for="meanReturn" class="block text-sm font-medium text-gray-700 mb-1">Mean Return per Period for all series (%)</label>
+          <label for="meanReturn" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="main.mean_return"
+            >Mean Return per Period for all series (%)</label
+          >
           <input
             type="number"
             id="meanReturn"
@@ -100,27 +253,61 @@
           />
         </div>
         <div class="sm:col-span-2 lg:col-span-2 flex items-end">
-          <button onclick="generateSeries(); updateCharts()" class="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+          <button
+            onclick="generateSeries(); updateCharts()"
+            class="w-full p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+            data-i18n="main.generate_button"
+          >
             Generate & Plot
           </button>
         </div>
       </div>
-
       <div id="errorMessage" class="text-red-600 text-sm mt-2 hidden"></div>
-
       <div class="checkbox-group flex items-center gap-2 mt-4">
         <input type="checkbox" id="logScale" onchange="updateCharts()" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-        <label for="logScale" class="text-sm font-medium text-gray-700">Logarithmic Y-Axis</label>
+        <label for="logScale" class="text-sm font-medium text-gray-700" data-i18n="main.log_scale">Logarithmic Y-Axis</label>
       </div>
-
-      <canvas id="returnsChart" class="mt-6"></canvas>
-      <canvas id="finalValuesChart" class="mt-6"></canvas>
-
-      <div id="results" class="mt-6 text-gray-700 whitespace-pre-wrap"></div>
-
+      <div class="chart-container mt-6">
+        <canvas id="returnsChart"></canvas>
+      </div>
+      <div class="chart-container mt-6">
+        <canvas id="finalValuesChart"></canvas>
+      </div>
+      <div class="mt-8 grid grid-cols-1 gap-4">
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div class="flex-1">
+            <label for="seriesSelector" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="main.series_selector"
+              >Select Series for Histogram</label
+            >
+            <div class="relative">
+              <select
+                id="seriesSelector"
+                onchange="updateHistogram()"
+                class="appearance-none w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-8"
+              >
+                <option value="constant" data-i18n="main.constant_series">Constant Series</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                  <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-end">
+            <button onclick="downloadSeriesCSV()" class="p-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition" data-i18n="main.download_button">
+              Download Series as CSV
+            </button>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="histogramChart"></canvas>
+        </div>
+      </div>
+      <div id="results" class="mt-6 text-gray-700"></div>
       <div class="mt-6 text-gray-700 text-sm bg-gray-100 p-4 rounded-md">
-        <h2 class="text-lg font-semibold text-gray-800 mb-2">Legend</h2>
-        <p>
+        <h2 class="text-lg font-semibold text-gray-800 mb-2" data-i18n="main.legend.title">Legend</h2>
+        <p data-i18n="main.legend.cagr">
           <strong>CAGR (Compound Annual Growth Rate):</strong> The annual growth rate of an investment over a specified period, assuming the profits are
           reinvested each year. It is calculated as: CAGR = ((Final Value / Initial Investment)^(1/Number of Years) - 1) * 100, expressed as a percentage.
         </p>
@@ -130,8 +317,8 @@
     <!-- Footer -->
     <footer class="bg-gray-800 text-white py-4 px-6">
       <div class="container max-w-4xl mx-auto text-center">
-        <p class="text-sm">Created by <span class="font-semibold">Nicolas Lequeux</span> - July 2025</p>
-        <p class="text-sm mt-1">
+        <p class="text-sm" data-i18n="footer.created_by">Created by <span class="font-semibold">Nicolas Lequeux</span> - July 2025</p>
+        <p class="text-sm mt-1" data-i18n="footer.contact">
           Interested in collaborating on new studies or projects? Feel free to reach out:
           <a href="https://www.linkedin.com/in/nicolas-lequeux-5b02806/" target="_blank" class="underline hover:text-blue-300">LinkedIn Profile</a>
         </p>
@@ -139,6 +326,193 @@
     </footer>
 
     <script>
+      // Translation objects
+      const translations = {
+        en: {
+          title: "Investment Returns Simulator",
+          "header.title": "Volatility versus Steady Growth Simulator",
+          "header.description1":
+            "This simulator allows you to generate random investment series and compare them against constant growth, helping you understand the impact of volatility on returns.",
+          "header.description2":
+            "<span class='underline'>Both series, random and constant, will average the same arithmetic mean across all periods</span>, but the random series will exhibit volatility, while the constant series will provide a steady growth path. The steady return series will always achieve higher final values than volatile series with the same arithmetic mean due to the compounding effect.",
+          "header.show_hide_help": "Show/Hide Help: Understanding Volatility and Min/Max Returns",
+          "header.language_button": "Français",
+          "header.help.title": "Understanding Volatility and Min/Max Returns",
+          "header.help.description":
+            "This simulator lets you choose between a <strong>Uniform Distribution</strong> or a <strong>Normal Distribution</strong> to generate random investment returns. Each uses different parameters to control the variability of returns:",
+          "header.help.volatility":
+            "<strong>Volatility (Normal Distribution):</strong> Select 'Normal Distribution' to generate returns that follow a bell-shaped curve, clustering around the <strong>Mean Return</strong>. <strong>Volatility</strong> (standard deviation, %) controls how spread out returns are. Higher volatility (e.g., 20%) means larger swings, with most returns within ±1 standard deviation (e.g., -12.5% to 27.5% for a 7.5% mean). Higher volatility reduces the <strong>CAGR</strong> due to compounding effects.",
+          "header.help.min_max":
+            "<strong>Min/Max Returns (Uniform Distribution):</strong> Select 'Uniform Distribution' to generate returns equally likely between <strong>Min Return</strong> and <strong>Max Return</strong> (e.g., -35% to 35%). The range sets the variability, where volatility is approximately ((Max - Min) / √12) × 100 (e.g., ~20.21% for -35% to 35%). A wider range increases variability, lowering the CAGR.",
+          "header.help.comparing":
+            "<strong>Comparing Distributions:</strong> Normal Distribution is more realistic, with returns clustering near the mean. Uniform Distribution tests extreme scenarios, as all returns in the range are equally likely. Both match the specified <strong>Mean Return</strong>, but higher variability (volatility or wider range) leads to greater fluctuations and a lower CAGR, as seen in the charts.",
+          "header.help.using":
+            "<strong>Using the Simulator:</strong> Choose Uniform Distribution to set exact return boundaries, or Normal Distribution for realistic market behavior. Use the histogram to see return distributions, the line chart for growth paths, and the bar chart for final values. Observe how variability impacts outcomes compared to the constant return series.",
+          "main.initial_investment": "Initial Investment ($)",
+          "main.num_periods": "Number of Periods",
+          "main.num_series": "Number of Random Series",
+          "main.distribution_type": "Distribution Type",
+          "main.uniform_distribution": "Uniform Distribution",
+          "main.normal_distribution": "Normal Distribution",
+          "main.max_return": "Max Return per Period (%)",
+          "main.min_return": "Min Return per Period (%)",
+          "main.volatility": "Volatility (Std Deviation, %)",
+          "main.mean_return": "Mean Return per Period for all series (%)",
+          "main.generate_button": "Generate & Plot",
+          "main.log_scale": "Logarithmic Y-Axis",
+          "main.series_selector": "Select Series for Histogram",
+          "main.constant_series": "Constant Series",
+          "main.download_button": "Download Series as CSV",
+          "main.legend.title": "Legend",
+          "main.legend.cagr":
+            "<strong>CAGR (Compound Annual Growth Rate):</strong> The annual growth rate of an investment over a specified period, assuming the profits are reinvested each year. It is calculated as: CAGR = ((Final Value / Initial Investment)^(1/Number of Years) - 1) * 100, expressed as a percentage.",
+          "footer.created_by": "Created by <span class='font-semibold'>Nicolas Lequeux</span> - July 2025",
+          "footer.contact":
+            "Interested in collaborating on new studies or projects? Feel free to reach out: <a href='https://www.linkedin.com/in/nicolas-lequeux-5b02806/' target='_blank' class='underline hover:text-blue-300'>LinkedIn Profile</a>",
+          // Chart text translations
+          "chart.returns_title": "Random vs constant returns, both averaging {meanReturn}% arithmetic mean per period",
+          "chart.final_values_title": "Final investment values after {numPeriods} periods",
+          "chart.histogram_title": "Distribution of Returns for {series}",
+          "chart.period": "Period",
+          "chart.investment_value": "Investment Value ($)",
+          "chart.random_series": "Random Series",
+          "chart.final_value": "Final Value ($)",
+          "chart.return_range": "Return Range (%)",
+          "chart.frequency": "Frequency",
+          // Table headers
+          "table.series": "Series",
+          "table.mean_return": "Mean Return (%)",
+          "table.volatility": "Volatility (%)",
+          "table.cagr": "CAGR (%)",
+          // Table rows
+          "table.random_series": "Random Series {index}",
+          "table.constant_series": "Constant {meanReturn}% Series",
+          // Summary
+          "summary.initial_investment": "Initial Investment: ${initialInvestment}",
+          "summary.volatility": "Volatility: {volatility}%",
+          "summary.max_return": "Max Return per Period: {maxReturn}%",
+          "summary.min_return": "Min Return per Period: {minReturn}%",
+          "summary.num_periods": "Number of Periods: {numPeriods}",
+          "summary.num_series": "Number of Random Series: {numSeries}",
+          "summary.distribution_normal": "Distribution: Normal",
+          "summary.distribution_uniform": "Distribution: Uniform",
+          // Error messages
+          "error.num_series": "Number of Random Series must be at least 1.",
+          "error.num_periods": "Number of Periods must be at least 1.",
+          "error.initial_investment": "Initial Investment must be greater than 0.",
+          "error.max_return": "Max Return per period must be a valid number.",
+          "error.min_return": "Min Return per period must be a valid number.",
+          "error.max_min_return": "Max Return per period must be greater than Min Return per period.",
+          "error.mean_return": "Mean Return per period must be a valid number.",
+          "error.mean_range": "Mean Return per period must be between Min and Max Return per period.",
+          "error.volatility": "Volatility must be a positive number.",
+        },
+        fr: {
+          title: "Simulateur de rendements d'investissement",
+          "header.title": "Simulateur de volatilité contre croissance stable",
+          "header.description1":
+            "Ce simulateur vous permet de générer des séries d'investissement aléatoires et de les comparer à une croissance constante, vous aidant à comprendre l'impact de la volatilité sur les rendements.",
+          "header.description2":
+            "<span class='underline'>Les séries aléatoires et constantes auront la même moyenne arithmétique sur toutes les périodes</span>, mais la série aléatoire présentera de la volatilité, tandis que la série constante offrira un chemin de croissance stable. La série à rendement constant atteindra toujours des valeurs finales plus élevées que les séries volatiles avec la même moyenne arithmétique en raison de l'effet de composition.",
+          "header.show_hide_help": "Afficher/Masquer l'aide : Comprendre la volatilité et les rendements min/max",
+          "header.language_button": "English",
+          "header.help.title": "Comprendre la volatilité et les rendements min/max",
+          "header.help.description":
+            "Ce simulateur vous permet de choisir entre une <strong>distribution uniforme</strong> ou une <strong>distribution normale</strong> pour générer des rendements d'investissement aléatoires. Chacune utilise différents paramètres pour contrôler la variabilité des rendements :",
+          "header.help.volatility":
+            "<strong>Volatilité (Distribution Normale) :</strong> Sélectionnez 'Distribution Normale' pour générer des rendements suivant une courbe en cloche, regroupés autour du <strong>Rendement Moyen</strong>. La <strong>volatilité</strong> (écart-type, %) contrôle l'étendue des rendements. Une volatilité plus élevée (par exemple, 20 %) signifie des fluctuations plus importantes, la plupart des rendements se situant dans ±1 écart-type (par exemple, -12,5 % à 27,5 % pour une moyenne de 7,5 %). Une volatilité plus élevée réduit le <strong>TCAC</strong> en raison des effets de composition.",
+          "header.help.min_max":
+            "<strong>Rendements Min/Max (Distribution Uniforme) :</strong> Sélectionnez 'Distribution Uniforme' pour générer des rendements également probables entre le <strong>Rendement Minimum</strong> et le <strong>Rendement Maximum</strong> (par exemple, -35 % à 35 %). L'intervalle définit la variabilité, où la volatilité est approximativement ((Max - Min) / √12) × 100 (par exemple, ~20,21 % pour -35 % à 35 %). Un intervalle plus large augmente la variabilité, réduisant le TCAC.",
+          "header.help.comparing":
+            "<strong>Comparaison des distributions :</strong> La distribution normale est plus réaliste, avec des rendements regroupés autour de la moyenne. La distribution uniforme teste des scénarios extrêmes, tous les rendements dans l'intervalle étant également probables. Les deux correspondent au <strong>Rendement Moyen</strong> spécifié, mais une variabilité plus élevée (volatilité ou intervalle plus large) entraîne des fluctuations plus importantes et un TCAC plus bas, comme visible dans les graphiques.",
+          "header.help.using":
+            "<strong>Utilisation du simulateur :</strong> Choisissez la distribution uniforme pour définir des limites de rendement précises, ou la distribution normale pour un comportement de marché réaliste. Utilisez l'histogramme pour voir les distributions de rendements, le graphique linéaire pour les trajectoires de croissance, et le graphique à barres pour les valeurs finales. Observez comment la variabilité affecte les résultats par rapport à la série à rendement constant.",
+          "main.initial_investment": "Investissement initial ($)",
+          "main.num_periods": "Nombre de périodes",
+          "main.num_series": "Nombre de séries aléatoires",
+          "main.distribution_type": "Type de distribution",
+          "main.uniform_distribution": "Distribution uniforme",
+          "main.normal_distribution": "Distribution normale",
+          "main.max_return": "Rendement maximum par période (%)",
+          "main.min_return": "Rendement minimum par période (%)",
+          "main.volatility": "Volatilité (Écart-type, %)",
+          "main.mean_return": "Rendement moyen par période pour toutes les séries (%)",
+          "main.generate_button": "Générer et tracer",
+          "main.log_scale": "Axe Y logarithmique",
+          "main.series_selector": "Sélectionner une série pour l'histogramme",
+          "main.constant_series": "Série constante",
+          "main.download_button": "Télécharger les séries en CSV",
+          "main.legend.title": "Légende",
+          "main.legend.cagr":
+            "<strong>TCAC (Taux de Croissance Annuel Composé) :</strong> Le taux de croissance annuel d'un investissement sur une période spécifiée, en supposant que les profits sont réinvestis chaque année. Il est calculé comme suit : TCAC = ((Valeur Finale / Investissement Initial)^(1/Nombre d'Années) - 1) * 100, exprimé en pourcentage.",
+          "footer.created_by": "Créé par <span class='font-semibold'>Nicolas Lequeux</span> - Juillet 2025",
+          "footer.contact":
+            "Intéressé par une collaboration sur de nouvelles études ou projets ? N'hésitez pas à me contacter : <a href='https://www.linkedin.com/in/nicolas-lequeux-5b02806/' target='_blank' class='underline hover:text-blue-300'>Profil LinkedIn</a>",
+          "chart.returns_title": "Rendements aléatoires vs constants, tous deux avec une moyenne arithmétique de {meanReturn}% par période",
+          "chart.final_values_title": "Valeurs finales de l'investissement après {numPeriods} périodes",
+          "chart.histogram_title": "Distribution des rendements pour {series}",
+          "chart.period": "Période",
+          "chart.investment_value": "Valeur de l'investissement ($)",
+          "chart.random_series": "Séries aléatoires",
+          "chart.final_value": "Valeur finale ($)",
+          "chart.return_range": "Plage de rendements (%)",
+          "chart.frequency": "Fréquence",
+          "table.series": "Série",
+          "table.mean_return": "Rendement moyen (%)",
+          "table.volatility": "Volatilité (%)",
+          "table.cagr": "TCAC (%)",
+          "table.random_series": "Série aléatoire {index}",
+          "table.constant_series": "Série constante {meanReturn}%",
+          "summary.initial_investment": "Investissement initial : ${initialInvestment}",
+          "summary.volatility": "Volatilité : {volatility}%",
+          "summary.max_return": "Rendement maximum par période : {maxReturn}%",
+          "summary.min_return": "Rendement minimum par période : {minReturn}%",
+          "summary.num_periods": "Nombre de périodes : {numPeriods}",
+          "summary.num_series": "Nombre de séries aléatoires : {numSeries}",
+          "summary.distribution_normal": "Distribution : Normale",
+          "summary.distribution_uniform": "Distribution : Uniforme",
+          "error.num_series": "Le nombre de séries aléatoires doit être d'au moins 1.",
+          "error.num_periods": "Le nombre de périodes doit être d'au moins 1.",
+          "error.initial_investment": "L'investissement initial doit être supérieur à 0.",
+          "error.max_return": "Le rendement maximum par période doit être un nombre valide.",
+          "error.min_return": "Le rendement minimum par période doit être un nombre valide.",
+          "error.max_min_return": "Le rendement maximum par période doit être supérieur au rendement minimum par période.",
+          "error.mean_return": "Le rendement moyen par période doit être un nombre valide.",
+          "error.mean_range": "Le rendement moyen par période doit être compris entre le rendement minimum et maximum par période.",
+          "error.volatility": "La volatilité doit être un nombre positif.",
+        },
+      };
+
+      // Current language (default is English)
+      let currentLanguage = "en";
+
+      // Function to toggle language
+      function toggleLanguage() {
+        currentLanguage = currentLanguage === "en" ? "fr" : "en";
+        updateLanguage();
+        updateCharts(); // Update charts to reflect translated titles and labels
+      }
+
+      // Function to update text content based on current language
+      function updateLanguage() {
+        document.querySelectorAll("[data-i18n]").forEach((element) => {
+          const key = element.getAttribute("data-i18n");
+          let text = translations[currentLanguage][key] || translations["en"][key];
+          // Handle HTML content (e.g., with <strong> or <span>)
+          if (text.includes("<")) {
+            element.innerHTML = text;
+          } else {
+            element.textContent = text;
+          }
+        });
+        // Update placeholder attributes
+        document.querySelectorAll("input[placeholder]").forEach((input) => {
+          const key = input.id;
+          input.placeholder = translations[currentLanguage][`main.${key}`] || input.placeholder;
+        });
+        // Update chart titles and labels dynamically in updateCharts
+      }
+
       // Global variables to store series data
       let allSeries = [];
       let growthSeries = [];
@@ -146,68 +520,125 @@
       let means = [];
       let volatilities = [];
       let cagrs = [];
-      let numSeries = 3;
-      let numPeriods = 100;
+      let numSeries = 50;
+      let numPeriods = 35;
       let initialInvestment = 1000;
-      let maxReturn = 25;
-      let minReturn = -25;
-      let meanReturn = 5;
+      let maxReturn = 35;
+      let minReturn = -35;
+      let volatility = 20;
+      let meanReturn = 7.5;
 
-      function validateInputs(numSeries, numPeriods, initialInvestment, maxReturn, minReturn, meanReturn) {
+      // Chart instances
+      let returnsChart = null;
+      let finalValuesChart = null;
+      let histogramChart = null;
+
+      function toggleHelpSection() {
+        const helpSection = document.getElementById("helpSection");
+        helpSection.classList.toggle("hidden");
+      }
+
+      function toggleDistributionInputs() {
+        const distributionType = document.getElementById("distributionType").value;
+        const uniformInputs = document.querySelectorAll(".uniformInputs");
+        uniformInputs.forEach((element) => {
+          element.classList.toggle("hidden", distributionType === "normal");
+        });
+        document.getElementById("gaussianInputs").classList.toggle("hidden", distributionType !== "normal");
+      }
+
+      function validateInputs(numSeries, numPeriods, initialInvestment, maxReturn, minReturn, volatility, meanReturn, distributionType) {
         const errorDiv = document.getElementById("errorMessage");
         errorDiv.classList.add("hidden");
         errorDiv.textContent = "";
         if (isNaN(numSeries) || numSeries < 1) {
-          errorDiv.textContent = "Number of Random Series must be at least 1.";
+          errorDiv.textContent = translations[currentLanguage]["error.num_series"];
           errorDiv.classList.remove("hidden");
           return false;
         }
         if (isNaN(numPeriods) || numPeriods < 1) {
-          errorDiv.textContent = "Number of Periods must be at least 1.";
+          errorDiv.textContent = translations[currentLanguage]["error.num_periods"];
           errorDiv.classList.remove("hidden");
           return false;
         }
         if (isNaN(initialInvestment) || initialInvestment <= 0) {
-          errorDiv.textContent = "Initial Investment must be greater than 0.";
+          errorDiv.textContent = translations[currentLanguage]["error.initial_investment"];
           errorDiv.classList.remove("hidden");
           return false;
         }
-        if (isNaN(maxReturn)) {
-          errorDiv.textContent = "Max Return per period must be a valid number.";
-          errorDiv.classList.remove("hidden");
-          return false;
-        }
-        if (isNaN(minReturn)) {
-          errorDiv.textContent = "Min Return per period must be a valid number.";
-          errorDiv.classList.remove("hidden");
-          return false;
-        }
-        if (maxReturn <= minReturn) {
-          errorDiv.textContent = "Max Return per period must be greater than Min Return per period.";
-          errorDiv.classList.remove("hidden");
-          return false;
-        }
-        if (isNaN(meanReturn)) {
-          errorDiv.textContent = "Mean Return per period must be a valid number.";
-          errorDiv.classList.remove("hidden");
-          return false;
-        }
-        if (meanReturn < minReturn || meanReturn > maxReturn) {
-          errorDiv.textContent = "Mean Return per period must be between Min and Max Return per period.";
-          errorDiv.classList.remove("hidden");
-          return false;
+        if (distributionType === "uniform") {
+          if (isNaN(maxReturn)) {
+            errorDiv.textContent = translations[currentLanguage]["error.max_return"];
+            errorDiv.classList.remove("hidden");
+            return false;
+          }
+          if (isNaN(minReturn)) {
+            errorDiv.textContent = translations[currentLanguage]["error.min_return"];
+            errorDiv.classList.remove("hidden");
+            return false;
+          }
+          if (maxReturn <= minReturn) {
+            errorDiv.textContent = translations[currentLanguage]["error.max_min_return"];
+            errorDiv.classList.remove("hidden");
+            return false;
+          }
+          if (isNaN(meanReturn)) {
+            errorDiv.textContent = translations[currentLanguage]["error.mean_return"];
+            errorDiv.classList.remove("hidden");
+            return false;
+          }
+          if (meanReturn < minReturn || meanReturn > maxReturn) {
+            errorDiv.textContent = translations[currentLanguage]["error.mean_range"];
+            errorDiv.classList.remove("hidden");
+            return false;
+          }
+        } else {
+          if (isNaN(volatility) || volatility <= 0) {
+            errorDiv.textContent = translations[currentLanguage]["error.volatility"];
+            errorDiv.classList.remove("hidden");
+            return false;
+          }
+          if (isNaN(meanReturn)) {
+            errorDiv.textContent = translations[currentLanguage]["error.mean_return"];
+            errorDiv.classList.remove("hidden");
+            return false;
+          }
         }
         return true;
       }
 
-      function generateRandomReturns(count, mean, maxReturn, minReturn) {
+      function generateRandomReturns(count, mean, maxReturn, minReturn, volatility, distributionType) {
         const meanDecimal = mean / 100;
-        const maxReturnDecimal = maxReturn / 100;
-        const minReturnDecimal = minReturn / 100;
-        let returns = Array.from({ length: count }, () => Math.random() * (maxReturnDecimal - minReturnDecimal) + minReturnDecimal);
-        const currentMean = returns.reduce((sum, val) => sum + val, 0) / count;
-        const adjustment = meanDecimal - currentMean;
-        returns = returns.map((val) => val + adjustment);
+        let returns = [];
+        if (distributionType === "normal") {
+          const stdDev = volatility / 100;
+          for (let i = 0; i < count; i++) {
+            const u = 1 - Math.random();
+            const v = Math.random();
+            const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            const value = meanDecimal + z * stdDev;
+            returns.push(value);
+          }
+          const currentMean = returns.reduce((sum, val) => sum + val, 0) / count;
+          const adjustment = meanDecimal - currentMean;
+          returns = returns.map((val) => val + adjustment);
+        } else {
+          const maxReturnDecimal = maxReturn / 100;
+          const minReturnDecimal = minReturn / 100;
+          returns = Array.from({ length: count }, () => minReturnDecimal + Math.random() * (maxReturnDecimal - minReturnDecimal));
+          const currentMean = returns.reduce((sum, val) => sum + val, 0) / count;
+          const adjustment = meanDecimal - currentMean;
+          returns = returns.map((val) => {
+            const adjusted = val + adjustment;
+            return Math.max(minReturnDecimal, Math.min(maxReturnDecimal, adjusted));
+          });
+          const finalMean = returns.reduce((sum, val) => sum + val, 0) / count;
+          const finalAdjustment = meanDecimal - finalMean;
+          returns = returns.map((val) => {
+            const adjusted = val + finalAdjustment;
+            return Math.max(minReturnDecimal, Math.min(maxReturnDecimal, adjusted));
+          });
+        }
         return returns;
       }
 
@@ -234,15 +665,175 @@
         return ((Math.pow(finalValue / initialValue, 1 / numPeriods) - 1) * 100).toFixed(2);
       }
 
+      function populateSeriesSelector() {
+        const selector = document.getElementById("seriesSelector");
+        while (selector.options.length > 1) {
+          selector.remove(1);
+        }
+        for (let i = 1; i <= numSeries; i++) {
+          const option = document.createElement("option");
+          option.value = i;
+          option.textContent = translations[currentLanguage]["table.random_series"].replace("{index}", i);
+          selector.appendChild(option);
+        }
+        // Update the constant series option text
+        selector.options[0].textContent = translations[currentLanguage]["main.constant_series"];
+      }
+
+      function downloadSeriesCSV() {
+        const csvRows = [];
+        const headers = [translations[currentLanguage]["chart.period"]];
+        for (let i = 1; i <= numSeries; i++) {
+          headers.push(translations[currentLanguage]["table.random_series"].replace("{index}", i) + " (%)");
+        }
+        headers.push(translations[currentLanguage]["table.constant_series"].replace("{meanReturn}", meanReturn) + " (%)");
+        csvRows.push(headers.join(","));
+        for (let period = 0; period < numPeriods; period++) {
+          const row = [period + 1];
+          for (let seriesIndex = 0; seriesIndex < numSeries; seriesIndex++) {
+            row.push((allSeries[seriesIndex][period] * 100).toFixed(2));
+          }
+          row.push(meanReturn.toFixed(2));
+          csvRows.push(row.join(","));
+        }
+        const csvContent = csvRows.join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "All_Series_Returns.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      function updateHistogram() {
+        const selectedSeries = document.getElementById("seriesSelector").value;
+        const distributionType = document.getElementById("distributionType").value;
+        let returns = [];
+        if (selectedSeries === "constant") {
+          returns = Array(numPeriods).fill(meanReturn / 100);
+        } else {
+          const seriesIndex = parseInt(selectedSeries) - 1;
+          returns = allSeries[seriesIndex];
+        }
+        const returnPercentages = returns.map((r) => r * 100);
+        let bins, binSize, binCounts, binLabels;
+        if (distributionType === "normal" && selectedSeries !== "constant") {
+          const actualMin = Math.min(...returnPercentages);
+          const actualMax = Math.max(...returnPercentages);
+          const mean = meanReturn;
+          const stdDev = volatility;
+          const rangeMin = Math.min(actualMin, mean - 4 * stdDev);
+          const rangeMax = Math.max(actualMax, mean + 4 * stdDev);
+          binSize = (rangeMax - rangeMin) / 10;
+          bins = Array.from({ length: 11 }, (_, i) => rangeMin + i * binSize);
+          binCounts = Array(10).fill(0);
+          returnPercentages.forEach((r) => {
+            const binIndex = Math.min(Math.floor((r - rangeMin) / binSize), 9);
+            binCounts[binIndex]++;
+          });
+          binLabels = bins.slice(0, -1).map((bin, i) => `${bin.toFixed(1)}% to ${bins[i + 1].toFixed(1)}%`);
+        } else {
+          binSize = (maxReturn - minReturn) / 10;
+          bins = Array.from({ length: 11 }, (_, i) => minReturn + i * binSize);
+          binCounts = Array(10).fill(0);
+          returnPercentages.forEach((r) => {
+            const binIndex = Math.min(Math.floor((r - minReturn) / binSize), 9);
+            binCounts[binIndex]++;
+          });
+          binLabels = bins.slice(0, -1).map((bin, i) => `${bin.toFixed(1)}% to ${bins[i + 1].toFixed(1)}%`);
+        }
+        if (histogramChart) {
+          histogramChart.destroy();
+        }
+        const ctx = document.getElementById("histogramChart").getContext("2d");
+        histogramChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: binLabels,
+            datasets: [
+              {
+                label: translations[currentLanguage]["chart.histogram_title"].replace(
+                  "{series}",
+                  selectedSeries === "constant"
+                    ? translations[currentLanguage]["main.constant_series"]
+                    : translations[currentLanguage]["table.random_series"].replace("{index}", selectedSeries)
+                ),
+                data: binCounts,
+                backgroundColor: "rgba(54, 162, 235, 0.7)",
+                borderColor: "rgba(54, 162, 235, 1)",
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: true,
+                text: translations[currentLanguage]["chart.histogram_title"].replace(
+                  "{series}",
+                  selectedSeries === "constant"
+                    ? translations[currentLanguage]["main.constant_series"]
+                    : translations[currentLanguage]["table.random_series"].replace("{index}", selectedSeries)
+                ),
+              },
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return `${context.parsed.y} ${translations[currentLanguage]["chart.frequency"].toLowerCase()} (${(
+                      (context.parsed.y / numPeriods) *
+                      100
+                    ).toFixed(1)}%)`;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: translations[currentLanguage]["chart.return_range"],
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: translations[currentLanguage]["chart.frequency"],
+                },
+                beginAtZero: true,
+                ticks: { precision: 0 },
+              },
+            },
+          },
+        });
+      }
+
       function generateSeries() {
         const inputNumSeries = parseInt(document.getElementById("numSeries").value) || 1;
         const inputNumPeriods = parseInt(document.getElementById("numPeriods").value);
         const inputInitialInvestment = parseFloat(document.getElementById("initialInvestment").value);
         const inputMaxReturn = parseFloat(document.getElementById("maxReturn").value);
         const inputMinReturn = parseFloat(document.getElementById("minReturn").value);
+        const inputVolatility = parseFloat(document.getElementById("volatility").value);
         const inputMeanReturn = parseFloat(document.getElementById("meanReturn").value);
-
-        if (!validateInputs(inputNumSeries, inputNumPeriods, inputInitialInvestment, inputMaxReturn, inputMinReturn, inputMeanReturn)) {
+        const distributionType = document.getElementById("distributionType").value;
+        if (
+          !validateInputs(
+            inputNumSeries,
+            inputNumPeriods,
+            inputInitialInvestment,
+            inputMaxReturn,
+            inputMinReturn,
+            inputVolatility,
+            inputMeanReturn,
+            distributionType
+          )
+        ) {
           allSeries = [];
           growthSeries = [];
           constantGrowth = [];
@@ -252,70 +843,108 @@
           updateCharts();
           return;
         }
-
         numSeries = inputNumSeries;
         numPeriods = inputNumPeriods;
         initialInvestment = inputInitialInvestment;
         maxReturn = inputMaxReturn;
         minReturn = inputMinReturn;
+        volatility = inputVolatility;
         meanReturn = inputMeanReturn;
-
-        allSeries = Array.from({ length: numSeries }, () => generateRandomReturns(numPeriods, meanReturn, maxReturn, minReturn));
-
+        allSeries = Array.from({ length: numSeries }, () => generateRandomReturns(numPeriods, meanReturn, maxReturn, minReturn, volatility, distributionType));
         growthSeries = allSeries.map((series) => calculateInvestmentGrowth(initialInvestment, series));
-
         constantGrowth = calculateConstantGrowth(initialInvestment, numPeriods, meanReturn);
-
         means = allSeries.map((series) => ((series.reduce((sum, val) => sum + val, 0) / numPeriods) * 100).toFixed(2));
-
         volatilities = allSeries.map((series) => calculateVolatility(series).toFixed(2));
-
         cagrs = growthSeries.map((series) => calculateCAGR(initialInvestment, series[series.length - 1], numPeriods));
-
         const constantReturns = Array(numPeriods).fill(meanReturn / 100);
         means.push(meanReturn.toFixed(2));
         volatilities.push(calculateVolatility(constantReturns).toFixed(2));
         cagrs.push(calculateCAGR(initialInvestment, constantGrowth[constantGrowth.length - 1], numPeriods));
+        populateSeriesSelector();
       }
 
       function updateCharts() {
         const errorDiv = document.getElementById("errorMessage");
+        const distributionType = document.getElementById("distributionType").value;
         if (allSeries.length === 0 || growthSeries.length === 0 || constantGrowth.length === 0) {
-          if (window.returnsChart && typeof window.returnsChart.destroy === "function") {
-            window.returnsChart.destroy();
+          if (returnsChart && typeof returnsChart.destroy === "function") {
+            returnsChart.destroy();
           }
-          if (window.finalValuesChart && typeof window.finalValuesChart.destroy === "function") {
-            window.finalValuesChart.destroy();
+          if (finalValuesChart && typeof finalValuesChart.destroy === "function") {
+            finalValuesChart.destroy();
           }
-          document.getElementById("results").textContent = "";
+          if (histogramChart && typeof histogramChart.destroy === "function") {
+            histogramChart.destroy();
+          }
+          document.getElementById("results").innerHTML = "";
           return;
         }
-
         errorDiv.classList.add("hidden");
         errorDiv.textContent = "";
         const logScale = document.getElementById("logScale").checked;
-
-        const resultText =
-          `Generated ${numSeries} random series with ${numPeriods} periods each:\n` +
-          means
-            .slice(0, -1)
-            .map((mean, i) => `Random Series ${i + 1} Mean Return: ${mean}% (Volatility: ${volatilities[i]}%, CAGR: ${cagrs[i]}%)`)
-            .join("\n") +
-          `\nConstant ${meanReturn}% Series: Fixed ${means[means.length - 1]}% per period (Volatility: ${volatilities[volatilities.length - 1]}%, CAGR: ${
-            cagrs[cagrs.length - 1]
-          }%)` +
-          `\n\nInitial Investment: $${initialInvestment.toFixed(2)}` +
-          `\nMax Return per period: ${maxReturn.toFixed(2)}%` +
-          `\nMin Return per period: ${minReturn.toFixed(2)}%`;
-        document.getElementById("results").textContent = resultText;
-
-        const ctx = document.getElementById("returnsChart").getContext("2d");
+        let tableHTML = `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">${translations[currentLanguage]["table.series"]}</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">${translations[currentLanguage]["table.mean_return"]}</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">${translations[currentLanguage]["table.volatility"]}</th>
+                                <th class="border border-gray-300 px-4 py-2 text-left text-sm font-semibold text-gray-700">${translations[currentLanguage]["table.cagr"]}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+        for (let i = 0; i < numSeries; i++) {
+          tableHTML += `
+                    <tr class="${i % 2 === 0 ? "bg-white" : "bg-gray-50"}">
+                        <td class="border border-gray-300 px-4 py-2 text-sm text-gray-700">${translations[currentLanguage]["table.random_series"].replace(
+                          "{index}",
+                          i + 1
+                        )}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm text-gray-700">${means[i]}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm text-gray-700">${volatilities[i]}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm text-gray-700">${cagrs[i]}</td>
+                    </tr>
+                `;
+        }
+        tableHTML += `
+                    <tr class="bg-blue-50">
+                        <td class="border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">${translations[currentLanguage][
+                          "table.constant_series"
+                        ].replace("{meanReturn}", meanReturn)}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">${means[means.length - 1]}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">${volatilities[volatilities.length - 1]}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">${cagrs[cagrs.length - 1]}</td>
+                    </tr>
+                </tbody>
+                </table>
+            `;
+        tableHTML += `
+                <div class="text-sm text-gray-700 mt-4">
+                    <p class="leading-6">${translations[currentLanguage]["summary.initial_investment"].replace(
+                      "{initialInvestment}",
+                      initialInvestment.toFixed(2)
+                    )}</p>
+                    ${
+                      distributionType === "normal"
+                        ? `<p class="leading-6">${translations[currentLanguage]["summary.volatility"].replace("{volatility}", volatility.toFixed(2))}</p>`
+                        : `<p class="leading-6">${translations[currentLanguage]["summary.max_return"].replace("{maxReturn}", maxReturn.toFixed(2))}</p>
+                               <p class="leading-6">${translations[currentLanguage]["summary.min_return"].replace("{minReturn}", minReturn.toFixed(2))}</p>`
+                    }
+                    <p class="leading-6">${translations[currentLanguage]["summary.num_periods"].replace("{numPeriods}", numPeriods)}</p>
+                    <p class="leading-6">${translations[currentLanguage]["summary.num_series"].replace("{numSeries}", numSeries)}</p>
+                    <p class="leading-6">${translations[currentLanguage][`summary.distribution_${distributionType}`]}</p>
+                </div>
+            `;
+        document.getElementById("results").innerHTML = tableHTML;
+        const returnsCtx = document.getElementById("returnsChart").getContext("2d");
         const lineDatasets = growthSeries.map((series, i) => {
-          const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+          const gradient = returnsCtx.createLinearGradient(0, 0, 0, 400);
           gradient.addColorStop(0, "rgba(220, 220, 220, 0.8)");
           gradient.addColorStop(1, "rgba(180, 180, 180, 0.8)");
           return {
-            label: `Random Series ${i + 1}`,
+            label: translations[currentLanguage]["table.random_series"].replace("{index}", i + 1),
             data: series,
             borderColor: gradient,
             borderWidth: 1,
@@ -324,23 +953,21 @@
             pointRadius: 0,
           };
         });
-
         lineDatasets.push({
-          label: `Constant ${meanReturn}% Series`,
+          label: translations[currentLanguage]["table.constant_series"].replace("{meanReturn}", meanReturn),
           data: constantGrowth,
           borderColor: "#0000FF",
           borderWidth: 2,
-          borderDash: [5, 5],
-          fill: false,
+          borderDash: [5, 3],
+          fill: true,
+          backgroundColor: "rgba(0, 0, 255, 0.05)",
           tension: 0.1,
           pointRadius: 0,
         });
-
-        if (window.returnsChart && typeof window.returnsChart.destroy === "function") {
-          window.returnsChart.destroy();
+        if (returnsChart) {
+          returnsChart.destroy();
         }
-
-        window.returnsChart = new Chart(document.getElementById("returnsChart"), {
+        returnsChart = new Chart(returnsCtx, {
           type: "line",
           data: {
             labels: Array.from({ length: numPeriods }, (_, i) => i + 1),
@@ -348,27 +975,26 @@
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
               title: {
                 display: true,
-                text: `Random vs constant returns, both averaging ${meanReturn}% arithmetic mean per period`,
+                text: translations[currentLanguage]["chart.returns_title"].replace("{meanReturn}", meanReturn),
               },
-              legend: {
-                display: false,
-              },
+              legend: { display: false },
             },
             scales: {
               x: {
                 title: {
                   display: true,
-                  text: "Period",
+                  text: translations[currentLanguage]["chart.period"],
                 },
               },
               y: {
                 type: logScale ? "logarithmic" : "linear",
                 title: {
                   display: true,
-                  text: "Investment Value ($)",
+                  text: translations[currentLanguage]["chart.investment_value"],
                 },
                 beginAtZero: false,
                 min: logScale ? initialInvestment * 0.1 : undefined,
@@ -381,54 +1007,50 @@
             },
           },
         });
-
         const finalValues = growthSeries.map((series) => series[series.length - 1]);
         finalValues.push(constantGrowth[constantGrowth.length - 1]);
-        const barLabels = Array.from({ length: numSeries }, (_, i) => `Series ${i + 1}`);
-        barLabels.push(`Constant ${meanReturn}%`);
-        const barDatasets = [
-          {
-            label: "Final Value",
-            data: finalValues,
-            backgroundColor: [...Array(numSeries).fill("#808080"), "#0000FF"],
-            borderColor: [...Array(numSeries).fill("#808080"), "#0000FF"],
-            borderWidth: 1,
-          },
-        ];
-
-        if (window.finalValuesChart && typeof window.finalValuesChart.destroy === "function") {
-          window.finalValuesChart.destroy();
+        const barLabels = Array.from({ length: numSeries }, (_, i) => translations[currentLanguage]["table.random_series"].replace("{index}", i + 1));
+        barLabels.push(translations[currentLanguage]["table.constant_series"].replace("{meanReturn}", meanReturn));
+        const finalValuesCtx = document.getElementById("finalValuesChart").getContext("2d");
+        if (finalValuesChart) {
+          finalValuesChart.destroy();
         }
-
-        window.finalValuesChart = new Chart(document.getElementById("finalValuesChart"), {
+        finalValuesChart = new Chart(finalValuesCtx, {
           type: "bar",
           data: {
             labels: barLabels,
-            datasets: barDatasets,
+            datasets: [
+              {
+                label: translations[currentLanguage]["chart.final_value"],
+                data: finalValues,
+                backgroundColor: [...Array(numSeries).fill("#808080"), "#0000FF"],
+                borderColor: [...Array(numSeries).fill("#808080"), "#0000FF"],
+                borderWidth: 1,
+              },
+            ],
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
               title: {
                 display: true,
-                text: `Final investment values after ${numPeriods} periods`,
+                text: translations[currentLanguage]["chart.final_values_title"].replace("{numPeriods}", numPeriods),
               },
-              legend: {
-                display: false,
-              },
+              legend: { display: false },
             },
             scales: {
               x: {
                 title: {
                   display: true,
-                  text: "Random Series",
+                  text: translations[currentLanguage]["chart.random_series"],
                 },
               },
               y: {
                 type: "linear",
                 title: {
                   display: true,
-                  text: "Final Value ($)",
+                  text: translations[currentLanguage]["chart.final_value"],
                 },
                 beginAtZero: true,
                 min: 0,
@@ -441,11 +1063,14 @@
             },
           },
         });
+        updateHistogram();
       }
 
-      // Initialize charts on page load
+      // Initialize charts, inputs, and language on page load
       window.onload = function () {
+        toggleDistributionInputs();
         generateSeries();
+        updateLanguage();
         updateCharts();
       };
     </script>
